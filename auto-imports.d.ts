@@ -66,6 +66,7 @@ declare global {
   const useFormErrors: typeof import('./src/composables/formErrors')['useFormErrors']
   const useGenresStore: typeof import('./src/stores/genres')['useGenresStore']
   const useId: typeof import('vue')['useId']
+  const useLanguagesStore: typeof import('./src/stores/languages')['useLanguagesStore']
   const useModel: typeof import('vue')['useModel']
   const useMovieStore: typeof import('./src/stores/movie')['useMovieStore']
   const useMoviesStore: typeof import('./src/stores/movies')['useMoviesStore']

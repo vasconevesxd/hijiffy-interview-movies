@@ -1,23 +1,6 @@
 <script setup lang="ts">
-import { fetchProfile } from '@/services/supabase/supaQueries'
-import type { Tables } from 'database/types'
-
-const { username } = useRoute('/profile/[username]/').params
-
-const profile = ref<Tables<'profiles'> | null>(null)
-
-const getProfile = async () => {
-  const { data, error, status } = await fetchProfile({
-    column: 'username',
-    value: username
-  })
-
-  if (error) useErrorStore().setError({ error, customCode: status })
-
-  profile.value = data
-}
-
-await getProfile()
+const authStore = useAuthStore()
+const { profile } = storeToRefs(authStore)
 </script>
 
 <template>

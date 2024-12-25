@@ -27,18 +27,14 @@ export const fetchMovies = async ({
   }
 
   if (with_genres) {
-    params.append('with_genres', with_genres)
+    params.append('with_genres', with_genres.toString())
   }
 
-  const response = await services.get<RequestResponse<Movie>>(
-    `/discover/movie?${params.toString()}`
-  )
-  return response
+  return services.get<RequestResponse<Movie>>(`/discover/movie?${params.toString()}`)
 }
 
 export const fetchLanguages = async (): Promise<Language[]> => {
-  const response = await services.get<Language[]>('/configuration/languages')
-  return response
+  return services.get<Language[]>('/configuration/languages')
 }
 
 export const fetchKeywords = async ({
@@ -53,10 +49,7 @@ export const fetchKeywords = async ({
     page: page.toString()
   })
 
-  const response = await services.get<RequestResponse<Keyword>>(
-    `/search/keyword?${params.toString()}`
-  )
-  return response
+  return services.get<RequestResponse<Keyword>>(`/search/keyword?${params.toString()}`)
 }
 
 export const searchMovies = async ({
@@ -77,8 +70,7 @@ export const searchMovies = async ({
     page: page.toString()
   })
 
-  const response = await services.get<RequestResponse<Movie>>(`/search/movie?${params.toString()}`)
-  return response
+  return services.get<RequestResponse<Movie>>(`/search/movie?${params.toString()}`)
 }
 
 export const fetchMovieDetails = async ({
@@ -88,8 +80,7 @@ export const fetchMovieDetails = async ({
   movie_id: number
   language?: string
 }): Promise<MovieDetails> => {
-  const response = await services.get<MovieDetails>(`/movie/${movie_id}?language=${language}`)
-  return response
+  return services.get<MovieDetails>(`/movie/${movie_id}?language=${language}`)
 }
 
 export const fetchSimilarMovies = async ({
@@ -106,10 +97,7 @@ export const fetchSimilarMovies = async ({
     page: page.toString()
   })
 
-  const response = await services.get<RequestResponse<Movie>>(
-    `/movie/${movie_id}/similar?${params.toString()}`
-  )
-  return response
+  return services.get<RequestResponse<Movie>>(`/movie/${movie_id}/similar?${params.toString()}`)
 }
 
 export const fetchGenres = async ({
@@ -121,6 +109,5 @@ export const fetchGenres = async ({
     language
   })
 
-  const response = await services.get<{ genres: Genre[] }>(`/genre/movie/list?${params.toString()}`)
-  return response
+  return services.get<{ genres: Genre[] }>(`/genre/movie/list?${params.toString()}`)
 }

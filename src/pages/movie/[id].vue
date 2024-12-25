@@ -7,11 +7,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useMovieStore } from '@/stores/movie'
 
-const router = useRouter()
 const route = useRoute()
 const errorStore = useErrorStore()
 const movieStore = useMovieStore()
 const moviesStore = useMoviesStore()
+
+const { movie } = storeToRefs(movieStore)
+
+const { isLoading, movies, totalPages, currentPage } = storeToRefs(moviesStore)
 
 const getMovie = async (id: number) => {
   movieStore.movieId = id
@@ -23,14 +26,8 @@ await getMovie(Number(route.params?.id))
 
 onBeforeRouteUpdate(async (to) => {
   await getMovie(Number(to.params?.id))
+  usePageStore().pageData.canGoBack = true
 })
-
-const movie = computed(() => movieStore.movie)
-
-const isSimilarMoviesLoading = computed(() => moviesStore.isLoading)
-const similarMovies = computed(() => moviesStore.movies)
-const totalPages = computed(() => moviesStore.totalPages)
-const currentPage = computed(() => moviesStore.currentPage)
 
 const goToPage = async (page: number) => {
   if (page > 0 && totalPages.value && page <= totalPages.value) {
@@ -38,19 +35,13 @@ const goToPage = async (page: number) => {
     await moviesStore.getSimilarMovies()
   }
 }
-const redirectToMovie = (id: number) => {
-  if (id === undefined) return
-  router.push({ name: '/movie/[id]', params: { id } })
-}
 </script>
 
-<style scoped>
-.container {
-  max-width: 1200px;
-}
-</style>
 <template>
-  <div class="bg-gray-900 text-gray-100 min-h-screen" v-if="!errorStore.activeError">
+  <div
+    class="bg-gray-900 text-gray-100 min-h-screen"
+    v-if="!errorStore.activeError && movie && Object.keys(movie).length > 0"
+  >
     <header class="relative bg-gray-800">
       <Card class="overflow-hidden">
         <img
@@ -184,18 +175,13 @@ const redirectToMovie = (id: number) => {
             <CardTitle>Similar Movies</CardTitle>
           </CardHeader>
           <CardContent>
-            <div v-if="isSimilarMoviesLoading" class="text-center">Loading...</div>
-            <div v-else-if="similarMovies.length === 0" class="text-center text-lg text-gray-500">
+            <div v-if="isLoading" class="text-center">Loading...</div>
+            <div v-else-if="movies.length === 0" class="text-center text-lg text-gray-500">
               No data available for this page.
             </div>
             <div v-else>
               <div class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
-                <List
-                  v-for="movie in similarMovies"
-                  :key="movie.id"
-                  :movie="movie"
-                  @click:movie="redirectToMovie(movie.id)"
-                />
+                <List v-for="movie in movies" :key="movie.id" :movie="movie" />
               </div>
               <div class="flex justify-center mt-6 gap-6">
                 <Pagination
@@ -211,3 +197,9 @@ const redirectToMovie = (id: number) => {
     </main>
   </div>
 </template>
+
+<style scoped>
+.container {
+  max-width: 1200px;
+}
+</style>

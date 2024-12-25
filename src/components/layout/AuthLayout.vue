@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-const { pageData } = storeToRefs(usePageStore())
+const pageStore = usePageStore()
+const { pageData } = storeToRefs(pageStore)
 const router = useRouter()
 const errorStore = useErrorStore()
 </script>

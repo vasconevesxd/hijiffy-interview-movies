@@ -63,16 +63,18 @@ const executeAction = async (linkTitle: string) => {
 
     if (isLoogedOut) router.push('/login')
   }
+  const authStore = useAuthStore()
 
   if (linkTitle === 'Profile') {
-    const username = useAuthStore().profile?.username
+    const username = authStore.profile?.username
+    console.log(username)
     if (username) {
       router.push({ name: '/profile/[username]/', params: { username } })
     }
   }
 
   if (linkTitle === 'Favorite') {
-    const username = useAuthStore().profile?.username
+    const username = authStore.profile?.username
     if (username) {
       router.push({ name: '/profile/[username]/favorites', params: { username } })
     }

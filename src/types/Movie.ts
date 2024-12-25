@@ -68,7 +68,3 @@ export interface MovieDetails {
   vote_average: number
   vote_count: number
 }
-export interface FetchMovieDataParams {
-  fetchFunction: () => Promise<any>
-  resultsHandler: (data: any) => void
-}

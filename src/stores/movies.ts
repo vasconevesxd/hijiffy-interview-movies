@@ -8,6 +8,7 @@ import {
   type FavoriteMovies
 } from '@/services/supabase/supaQueries'
 import type { RequestResponse } from '@/types/Request'
+import { useMemoize } from '@vueuse/core'
 
 export const useMoviesStore = defineStore('movies', () => {
   const movies = ref<Movie[]>([])
@@ -26,12 +27,63 @@ export const useMoviesStore = defineStore('movies', () => {
     with_genres: undefined
   })
 
-  const getMovieData = async ({ fetchFunction }: { fetchFunction: () => Promise<any[]> }) => {
-    isLoading.value = true
+  const handleMoviesData = (
+    moviesData: RequestResponse<Movie>,
+    favoriteMoviesData: FavoriteMovies
+  ) => {
+    favoriteMovieIds.value = new Set(favoriteMoviesData.map((fav: FavoriteMovies) => fav.movie_id))
+    return moviesData.results.map((movie) => ({
+      ...movie,
+      is_favorite: favoriteMovieIds.value.has(movie.id)
+    }))
+  }
 
+  const memoizedFetchMovies = useMemoize(
+    async (params: MovieQueryParams) => await fetchMovies(params),
+    { getKey: (params) => JSON.stringify(params) }
+  )
+
+  const memoizedFetchSimilarMovies = useMemoize(
+    async (params: { movie_id: string; language?: string; page?: number }) =>
+      await fetchSimilarMovies(params),
+    { getKey: (params) => `similar-movies-${params.movie_id}-${params.page}` }
+  )
+
+  const memoizedFetchFavoriteMovies = useMemoize(
+    async (profileId: string) => await fetchFavoriteMovies(profileId),
+    { getKey: (profileId) => `favorite-movies-${profileId}` }
+  )
+
+  const fetchMoviesData = async (
+    fetchFn: (params: any) => Promise<RequestResponse<Movie>>,
+    params: any
+  ) => {
     try {
-      const data = await fetchFunction()
-      return data
+      isLoading.value = true
+      const authStore = useAuthStore()
+
+      const [moviesData, favoriteMovies] = await Promise.all([
+        fetchFn(params), // eg:. fetchFn(params) => memoizedFetchMovies({ genre: 'action', page: 1 })
+        memoizedFetchFavoriteMovies(authStore.profile?.id)
+      ])
+
+      const favoriteMoviesData = favoriteMovies.data || []
+
+      // Validate the cache by comparing current movies with fetched movies
+      if (
+        movies.value.length === 0 ||
+        JSON.stringify(movies.value) !== JSON.stringify(moviesData.results)
+      ) {
+        if (fetchFn === memoizedFetchMovies) {
+          memoizedFetchMovies.delete(JSON.stringify(params))
+        } else if (fetchFn === memoizedFetchSimilarMovies) {
+          memoizedFetchSimilarMovies.delete(`similar-movies-${params.movie_id}-${params.page || 1}`)
+        }
+
+        movies.value = handleMoviesData(moviesData, favoriteMoviesData)
+        currentPage.value = moviesData.page
+        totalPages.value = moviesData.total_pages
+      }
     } catch (error: any | Error) {
       useErrorStore().setError({ error, customCode: error?.code })
     } finally {
@@ -39,87 +91,50 @@ export const useMoviesStore = defineStore('movies', () => {
     }
   }
 
-  const handleMoviesData = (
-    moviesData: RequestResponse<Movie>,
-    favoriteMoviesData: FavoriteMovies
-  ) => {
-    const favoriteIds = new Set(favoriteMoviesData.map((fav: Movie) => fav.movie_id))
-    return moviesData.results.map((movie) => ({
-      ...movie,
-      is_favorite: favoriteIds.has(movie.id)
-    }))
-  }
-
   const getMovies = async () => {
-    const authStore = useAuthStore()
-    try {
-      const [moviesData, favoriteMovies] = await getMovieData({
-        fetchFunction: async () =>
-          Promise.all([fetchMovies(filters.value), fetchFavoriteMovies(authStore.profile?.id)])
-      })
-
-      const favoriteMoviesData = favoriteMovies.data || []
-      favoriteMovieIds.value = new Set(favoriteMoviesData.map((fav: Movie) => fav.movie_id))
-      movies.value = handleMoviesData(moviesData, favoriteMoviesData)
-      currentPage.value = moviesData.page
-      totalPages.value = moviesData.total_pages
-    } catch (error: any | Error) {
-      useErrorStore().setError({ error, customCode: error?.code })
-    }
+    const params = filters.value
+    await fetchMoviesData(memoizedFetchMovies, params)
   }
 
   const getSimilarMovies = async () => {
-    const authStore = useAuthStore()
-    try {
-      const [moviesData, favoriteMovies] = await getMovieData({
-        fetchFunction: async () =>
-          Promise.all([
-            fetchSimilarMovies({ movie_id: useMovieStore().movieId, page: currentPage.value || 1 }),
-            fetchFavoriteMovies(authStore.profile?.id)
-          ])
-      })
-
-      const favoriteMoviesData = favoriteMovies.data || []
-      favoriteMovieIds.value = new Set(favoriteMoviesData.map((fav: Movie) => fav.movie_id))
-      movies.value = handleMoviesData(moviesData, favoriteMoviesData)
-      currentPage.value = moviesData.page
-      totalPages.value = moviesData.total_pages
-    } catch (error: any | Error) {
-      useErrorStore().setError({ error, customCode: error?.code })
+    const movieStore = useMovieStore()
+    const params = {
+      movie_id: movieStore.movieId,
+      page: currentPage.value || 1
     }
+    await fetchMoviesData(memoizedFetchSimilarMovies, params)
   }
 
   const getSearchedMovies = async (query: string) => {
-    const authStore = useAuthStore()
     try {
-      const [moviesData, favoriteMovies] = await getMovieData({
-        fetchFunction: async () =>
-          Promise.all([
-            searchMovies({ ...filters.value, query }),
-            fetchFavoriteMovies(authStore.profile?.id)
-          ])
-      })
+      isLoading.value = true
+      const authStore = useAuthStore()
+
+      const [moviesData, favoriteMovies] = await Promise.all([
+        searchMovies({ ...filters.value, query }),
+        fetchFavoriteMovies(authStore.profile?.id)
+      ])
 
       const favoriteMoviesData = favoriteMovies.data || []
-      favoriteMovieIds.value = new Set(favoriteMoviesData.map((fav: Movie) => fav.movie_id))
       movies.value = handleMoviesData(moviesData, favoriteMoviesData)
       currentPage.value = moviesData.page
       totalPages.value = moviesData.total_pages
     } catch (error: any | Error) {
       useErrorStore().setError({ error, customCode: error?.code })
+    } finally {
+      isLoading.value = false
     }
   }
 
   const toggleFavorite = async (movieId: number) => {
-    const authStore = useAuthStore()
     try {
-      const profileId = authStore.profile?.id
+      const authStore = useAuthStore()
 
       if (favoriteMovieIds.value.has(movieId)) {
-        await deleteFavoriteMovie({ profile_id: profileId, movie_id: movieId })
+        await deleteFavoriteMovie({ profile_id: authStore.profile.id, movie_id: movieId })
         favoriteMovieIds.value.delete(movieId)
       } else {
-        await insertFavoriteMovie({ profile_id: profileId, movie_id: movieId })
+        await insertFavoriteMovie({ profile_id: authStore.profile.id, movie_id: movieId })
         favoriteMovieIds.value.add(movieId)
       }
 

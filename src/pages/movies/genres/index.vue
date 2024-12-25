@@ -9,7 +9,7 @@ const moviesStore = useMoviesStore()
 const genresStore = useGenresStore()
 await genresStore.getGenres()
 
-const genres = computed(() => genresStore.genres)
+const { genres } = storeToRefs(genresStore)
 
 const redirectToMovies = (id: number) => {
   if (id !== undefined) {

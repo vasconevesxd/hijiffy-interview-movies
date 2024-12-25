@@ -21,8 +21,6 @@ const moviesStore = useMoviesStore()
 const handleUpdateFavoriteMovie = async (id: number) => {
   await moviesStore.toggleFavorite(id)
 }
-
-defineEmits(['click:movie'])
 </script>
 
 <template>
@@ -34,14 +32,16 @@ defineEmits(['click:movie'])
       </CardDescription>
     </CardHeader>
     <CardContent>
-      <div class="cursor-pointer" @click="$emit('click:movie', movie.id)">
-        <img
-          v-if="movie.poster_path"
-          :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
-          :alt="movie.title"
-          class="w-full h-auto max-h-96 sm:max-h-[28rem] md:max-h-[32rem] lg:max-h-[36rem] xl:max-h-[40rem] object-cover rounded-lg mb-4 shadow-md"
-        />
-      </div>
+      <RouterLink :to="{ name: '/movie/[id]', params: { id: movie.id } }">
+        <div class="cursor-pointer">
+          <img
+            v-if="movie.poster_path"
+            :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
+            :alt="movie.title"
+            class="w-full h-auto max-h-96 sm:max-h-[28rem] md:max-h-[32rem] lg:max-h-[36rem] xl:max-h-[40rem] object-cover rounded-lg mb-4 shadow-md"
+          />
+        </div>
+      </RouterLink>
     </CardContent>
     <CardFooter class="flex flex-col items-center space-y-4">
       <Button

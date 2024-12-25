@@ -12,6 +12,8 @@ pageStore.pageData.title = 'All Movies'
 pageStore.pageData.canGoBack = false
 
 const moviesStore = useMoviesStore()
+const { totalPages, isLoading, filters } = storeToRefs(moviesStore)
+
 const router = useRouter()
 const route = useRoute()
 const errorStore = useErrorStore()
@@ -32,10 +34,6 @@ onBeforeRouteUpdate(async (to) => {
 const currentMovies = computed(() => {
   return moviesStore.movies.slice(0, Number(selectedValue.value))
 })
-
-const totalPages = computed(() => moviesStore.totalPages)
-const isLoading = computed(() => moviesStore.isLoading)
-const filters = computed(() => moviesStore.filters)
 
 const goToPage = (page: number) => {
   if (page > 0 && totalPages.value && page <= totalPages.value) {
@@ -72,11 +70,6 @@ const handleFilters = async (params: MovieQueryParams) => {
   }
   await moviesStore.getMovies()
 }
-
-const redirectToMovie = (id: number) => {
-  if (id === undefined) return
-  router.push({ name: '/movie/[id]', params: { id } })
-}
 </script>
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_4fr] gap-6 pt-5" v-if="!errorStore.activeError">
@@ -99,12 +92,7 @@ const redirectToMovie = (id: number) => {
         <div
           class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8 w-full max-w-[1400px] mx-auto"
         >
-          <List
-            v-for="movie in currentMovies"
-            :key="movie.id"
-            :movie="movie"
-            @click:movie="redirectToMovie"
-          />
+          <List v-for="movie in currentMovies" :key="movie.id" :movie="movie" />
         </div>
         <div class="flex flex-col sm:flex-row justify-center items-center mt-6 gap-6">
           <Pagination :totalPages :currentPage="filters.page || 1" @update:currentPage="goToPage" />
